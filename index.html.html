@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nexora Active Defense Microlearning (Working Prototype)</title>
+  <style>
+    :root{--bg:#0b1220;--card:#121b2f;--text:#eaf0ff;--muted:#a9b7e6;--accent:#7aa7ff;--good:#60d394;--bad:#ff6b6b;--warn:#ffd166;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(180deg,#070b14, #0b1220);color:var(--text);}
+    .wrap{max-width:980px;margin:0 auto;padding:28px 16px 60px;}
+    .hero{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+    h1{font-size:28px;margin:0;letter-spacing:.2px}
+    .sub{color:var(--muted);line-height:1.5}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+    @media (max-width:860px){.grid{grid-template-columns:1fr}}
+    .card{background:rgba(18,27,47,.92);border:1px solid rgba(122,167,255,.18);border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(122,167,255,.12);border:1px solid rgba(122,167,255,.2);color:var(--text);font-size:13px}
+    .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+    .kpi{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .kpi .box{flex:1;min-width:160px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}
+    .box .label{color:var(--muted);font-size:12px}
+    .box .val{font-size:22px;margin-top:4px}
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    button{
+      appearance:none;border:0;border-radius:14px;
+      padding:10px 12px;background:rgba(122,167,255,.18);
+      color:var(--text);font-weight:600;cursor:pointer;
+      border:1px solid rgba(122,167,255,.25)
+    }
+    button:hover{background:rgba(122,167,255,.26)}
+    button.secondary{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
+    button.danger{background:rgba(255,107,107,.16);border:1px solid rgba(255,107,107,.22)}
+    .step{margin-top:10px;color:var(--muted);font-size:13px}
+    .qhead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .qtitle{font-size:18px;margin:0}
+    .tag{font-size:12px;color:var(--muted)}
+    .scenario{margin-top:10px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);line-height:1.5;white-space:pre-wrap}
+    .flags{margin-top:12px;display:grid;gap:8px}
+    label{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer}
+    input[type="radio"]{margin-top:2px}
+    .feedback{margin-top:12px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04)}
+    .feedback.good{border-color:rgba(96,211,148,.35);background:rgba(96,211,148,.08)}
+    .feedback.bad{border-color:rgba(255,107,107,.35);background:rgba(255,107,107,.08)}
+    .feedback.warn{border-color:rgba(255,209,102,.35);background:rgba(255,209,102,.08)}
+    .small{color:var(--muted);font-size:13px;line-height:1.5}
+    .rules li{margin:6px 0;color:var(--muted)}
+    textarea{width:100%;min-height:150px;border-radius:14px;background:rgba(0,0,0,.22);color:var(--text);border:1px solid rgba(255,255,255,.14);padding:10px;outline:none}
+    .footer{margin-top:16px;color:var(--muted);font-size:12px;line-height:1.5}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Nexora: Active Defense Microlearning (Working Prototype)</h1>
+      <div class="sub">
+        Goal: build the habit of <b>active defense</b>—pause, verify unusual requests through trusted channels,
+        protect data using policy, and report suspicious activity through the correct workflow.
+        <br/>Duration: 10–15 minutes • Audience: All employees (+ Finance/R&D emphasis)
+      </div>
+      <div class="meta">
+        <span class="pill">Modality: Interactive web micro-course</span>
+        <span class="pill">Focus: AI social engineering • Supply chain • Insider/unintentional</span>
+        <span class="pill">Assessment: scenario quiz + instant feedback</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card" id="quizCard">
+        <div class="qhead">
+          <div>
+            <p class="qtitle" id="qTitle">Loading…</p>
+            <div class="tag" id="qTag"></div>
+          </div>
+          <div class="tag" id="qProg"></div>
+        </div>
+
+        <div class="scenario" id="qScenario"></div>
+        <div class="flags" id="choices"></div>
+
+        <div class="btnrow">
+          <button id="submitBtn">Submit</button>
+          <button class="secondary" id="nextBtn" disabled>Next</button>
+          <button class="danger" id="resetBtn">Restart</button>
+        </div>
+
+        <div class="feedback" id="feedback" style="display:none;"></div>
+        <div class="step" id="hint"></div>
+      </div>
+
+      <div class="card">
+        <div class="kpi">
+          <div class="box">
+            <div class="label">Score</div>
+            <div class="val" id="scoreVal">0</div>
+          </div>
+          <div class="box">
+            <div class="label">Progress</div>
+            <div class="val" id="doneVal">0/0</div>
+          </div>
+          <div class="box">
+            <div class="label">Target Behaviors</div>
+            <div class="val" style="font-size:14px;margin-top:8px;color:var(--muted);line-height:1.5">
+              Pause → Verify independently → Report quickly
+            </div>
+          </div>
+        </div>
+
+        <h3 style="margin:14px 0 8px">Nexora “Golden Rules”</h3>
+        <ul class="rules">
+          <li><b>Verify, then trust.</b></li>
+          <li><b>Protect our data as you would your own.</b></li>
+          <li><b>When in doubt, report it out.</b></li>
+        </ul>
+
+        <h3 style="margin:14px 0 8px">Reporting (Nexora)</h3>
+        <div class="small">
+          <b>Email:</b> Use the <b>“Report Suspicious Activity”</b> button in the email client (auto-creates a SOC ticket).<br/>
+          <b>Teams/Slack/SMS/Deepfake audio:</b> Create a <b>High-Priority</b> ticket in the <b>IT service portal</b> → <b>Security Incident</b> category.
+          Include screenshots, originating phone number, call description, and any other evidence.
+        </div>
+
+        <h3 style="margin:14px 0 8px">External File Sharing (Nexora)</h3>
+        <div class="small">
+          Approved: <b>NexoraShare</b> (encrypted file transfer) and specific secure Microsoft Teams integrations for pre-vetted client collaborations.<br/>
+          Prohibited for sensitive data: public file-sharing sites and personal email.
+        </div>
+
+        <h3 style="margin:14px 0 8px">Data Classification (Nexora)</h3>
+        <div class="small">
+          <b>Public</b>: marketing/press releases • <b>Internal</b>: directory/announcements •
+          <b>Confidential</b>: business plans, pre-public financials, most project docs •
+          <b>Restricted</b>: employee PII, customer data, source code/IP, unannounced M&A.
+        </div>
+
+        <h3 style="margin:14px 0 8px">Export Results (for submission)</h3>
+        <div class="small">Click “Generate Summary” and copy into your project paper / AI usage journal.</div>
+        <div class="btnrow">
+          <button class="secondary" id="exportBtn">Generate Summary</button>
+        </div>
+        <textarea id="exportBox" placeholder="Your results summary will appear here…" readonly></textarea>
+
+        <div class="footer">
+          Prototype scope: scenario practice + immediate feedback + Nexora reporting and data-handling rules.<br/>
+          Out of scope: user accounts, LMS integration, analytics dashboard.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const questions = [
+  {
+    title: "Scenario 1: Unusual Executive Request for Sensitive Data",
+    tag: "AI-Supported Social Engineering",
+    scenario:
+`Email: “Need the latest project doc + sample dataset in 30 minutes. Don’t loop anyone else in.
+Use this link to upload: https://nexora-docs-share-secure.com”`,
+    choices: [
+      { id:"a", text:"Send the files quickly since it appears to be a senior executive.", correct:false,
+        why:"Urgency + secrecy + sensitive data is a classic social engineering pattern. Do not send. Verify outside the email using trusted channels."},
+      { id:"b", text:"Pause and verify through a separate trusted channel (phone/internal chat). Do not use contact info in the email.", correct:true,
+        why:"Correct: Verify, then trust. Independent verification is required for unusual requests."},
+      { id:"c", text:"Reply asking for confirmation, then share if they respond.", correct:false,
+        why:"Attackers can respond convincingly. Verification must be outside the suspicious channel."}
+    ],
+    riskSignals: ["Urgency", "Secrecy", "Sensitive data request", "Untrusted link/domain"]
+  },
+  {
+    title: "Scenario 2: Unverified ‘Security Update’ Prompt",
+    tag: "Supply Chain / Untrusted Update",
+    scenario:
+`Popup + email: “Critical security patch required now. Download from http://vendor-hotfix-secure.com.
+Please bypass IT approval to save time.”`,
+    choices: [
+      { id:"a", text:"Install it immediately since it’s a security patch.", correct:false,
+        why:"Supply chain attacks often use fake urgent patches. Never install software without IT approval."},
+      { id:"b", text:"Do not install. Take a screenshot. Report it immediately to Security/IT.", correct:true,
+        why:"Correct: deny the request, capture evidence, and report through the correct workflow."},
+      { id:"c", text:"Forward it to teammates so someone else can confirm faster.", correct:false,
+        why:"Forwarding spreads risk. Escalate to IT/Security instead."}
+    ],
+    riskSignals: ["Unverified source", "Process bypass request", "Urgency", "Download link"]
+  },
+  {
+    title: "Scenario 3: Vendor Sends a Link via Unofficial Channel",
+    tag: "Vendor Risk / Unofficial Channel",
+    scenario:
+`A vendor sends a file from a personal email account using a public file-sharing link:
+“Here’s the updated contract—please review ASAP.”`,
+    choices: [
+      { id:"a", text:"Open it—vendors send links all the time.", correct:false,
+        why:"Unofficial channels are a major red flag. Do not open; confirm legitimacy using the vendor’s official channel."},
+      { id:"b", text:"Do not open. Contact the vendor via official channels and request NexoraShare or the approved Teams integration.", correct:true,
+        why:"Correct: use approved encrypted channels and verify through official contacts."},
+      { id:"c", text:"Ask them to resend to your personal email so it’s easier to access.", correct:false,
+        why:"Personal email is prohibited for sensitive data and increases leakage risk."}
+    ],
+    riskSignals: ["Personal email", "Public file-sharing link", "Vendor compromise possibility"]
+  },
+  {
+    title: "Scenario 4: Reporting an Email Threat",
+    tag: "Incident Reporting (Email)",
+    scenario:
+`You receive a suspicious email asking you to reset your password using a strange link. What is the correct Nexora reporting step?`,
+    choices: [
+      { id:"a", text:"Forward it to your manager and wait.", correct:false,
+        why:"This delays response. Nexora has an official reporting tool built into the email client."},
+      { id:"b", text:"Use the “Report Suspicious Activity” button in the email client (creates a SOC ticket).", correct:true,
+        why:"Correct: this is Nexora’s official email reporting workflow."},
+      { id:"c", text:"Delete it immediately so it can’t harm anyone.", correct:false,
+        why:"Deleting prevents the SOC from investigating and blocking related threats."}
+    ],
+    riskSignals: ["Credential lure", "Untrusted link", "Urgency"]
+  },
+  {
+    title: "Scenario 5: Reporting a Deepfake Audio / SMS / Slack Threat",
+    tag: "Incident Reporting (Non-email)",
+    scenario:
+`You receive a suspicious SMS, then a call with a voice that sounds like your manager asking for an urgent fund transfer.
+What should you do?`,
+    choices: [
+      { id:"a", text:"Use the email “Report Suspicious Activity” button.", correct:false,
+        why:"That tool is for email. Non-email threats follow the IT service portal Security Incident workflow."},
+      { id:"b", text:"Create a High-Priority ticket in the IT service portal → Security Incident, including evidence and details.", correct:true,
+        why:"Correct: this ensures the incident is tracked and escalated properly."},
+      { id:"c", text:"Ignore it because there was no email.", correct:false,
+        why:"Deepfake and SMS threats are high-risk and must be reported."}
+    ],
+    riskSignals: ["Impersonation/deepfake", "Urgent financial request", "Unusual channel"]
+  },
+  {
+    title: "Scenario 6: Data Classification Quick Check",
+    tag: "Data Handling / Classification",
+    scenario:
+`Which classification best fits: employee PII, customer data, source code, and unannounced M&A details?`,
+    choices: [
+      { id:"a", text:"Internal", correct:false,
+        why:"Internal is for low-impact internal information (e.g., directory/announcements)."},
+      { id:"b", text:"Confidential", correct:false,
+        why:"Confidential is sensitive, but Restricted is the highest sensitivity category."},
+      { id:"c", text:"Restricted", correct:true,
+        why:"Correct: these are Nexora’s most sensitive data types."}
+    ],
+    riskSignals: ["PII", "Customer data", "IP/source code", "M&A"]
+  }
+];
+
+let idx = 0;
+let score = 0;
+let answered = false;
+const answersLog = [];
+
+const els = {
+  qTitle: document.getElementById("qTitle"),
+  qTag: document.getElementById("qTag"),
+  qProg: document.getElementById("qProg"),
+  qScenario: document.getElementById("qScenario"),
+  choices: document.getElementById("choices"),
+  submitBtn: document.getElementById("submitBtn"),
+  nextBtn: document.getElementById("nextBtn"),
+  resetBtn: document.getElementById("resetBtn"),
+  feedback: document.getElementById("feedback"),
+  hint: document.getElementById("hint"),
+  scoreVal: document.getElementById("scoreVal"),
+  doneVal: document.getElementById("doneVal"),
+  exportBtn: document.getElementById("exportBtn"),
+  exportBox: document.getElementById("exportBox")
+};
+
+function render(){
+  const q = questions[idx];
+  answered = false;
+  els.feedback.style.display = "none";
+  els.feedback.className = "feedback";
+  els.nextBtn.disabled = true;
+
+  els.qTitle.textContent = q.title;
+  els.qTag.textContent = q.tag;
+  els.qProg.textContent = `Question ${idx+1} / ${questions.length}`;
+  els.qScenario.textContent = q.scenario;
+
+  els.choices.innerHTML = "";
+  q.choices.forEach(ch=>{
+    const lab = document.createElement("label");
+    lab.innerHTML = `<input type="radio" name="ans" value="${ch.id}"/><div><b>${ch.id.toUpperCase()}</b>: ${ch.text}</div>`;
+    els.choices.appendChild(lab);
+  });
+
+  els.scoreVal.textContent = score;
+  els.doneVal.textContent = `${idx}/${questions.length}`;
+  els.hint.textContent = `Hint: watch for ${q.riskSignals.join(" / ")}.`;
+}
+
+function getSelected(){
+  const sel = document.querySelector('input[name="ans"]:checked');
+  return sel ? sel.value : null;
+}
+
+function submit(){
+  if(answered) return;
+  const sel = getSelected();
+  if(!sel){
+    els.feedback.style.display="block";
+    els.feedback.className="feedback warn";
+    els.feedback.innerHTML = `<b>Please choose an option</b> before submitting.`;
+    return;
+  }
+  answered = true;
+
+  const q = questions[idx];
+  const chosen = q.choices.find(c=>c.id===sel);
+  const ok = !!chosen.correct;
+  if(ok) score += 1;
+
+  els.feedback.style.display="block";
+  els.feedback.className = "feedback " + (ok ? "good":"bad");
+  els.feedback.innerHTML = ok
+    ? `<b>✅ Correct.</b><div class="small" style="margin-top:6px">${chosen.why}</div>
+       <div class="small" style="margin-top:8px"><b>Risk signals:</b> ${q.riskSignals.join(", ")}</div>`
+    : `<b>❌ Not quite.</b><div class="small" style="margin-top:6px">${chosen.why}</div>
+       <div class="small" style="margin-top:8px"><b>Risk signals:</b> ${q.riskSignals.join(", ")}</div>`;
+
+  answersLog.push({
+    q: q.title,
+    tag: q.tag,
+    selected: sel.toUpperCase(),
+    correct: ok,
+    riskSignals: q.riskSignals
+  });
+
+  els.nextBtn.disabled = false;
+  els.scoreVal.textContent = score;
+  els.doneVal.textContent = `${idx+1}/${questions.length}`;
+}
+
+function next(){
+  if(idx < questions.length - 1){
+    idx += 1;
+    render();
+  } else {
+    els.qTitle.textContent = "Finished! 🎉";
+    els.qTag.textContent = "Summary";
+    els.qProg.textContent = `Score: ${score}/${questions.length}`;
+    els.qScenario.textContent =
+`You completed the Nexora Active Defense microlearning module.
+Use “Generate Summary” on the right to copy your results into your project paper / AI journal.`;
+
+    els.choices.innerHTML = "";
+    els.feedback.style.display="block";
+    els.feedback.className="feedback good";
+    els.feedback.innerHTML = `<b>Your score:</b> ${score}/${questions.length}<br/>
+      <div class="small" style="margin-top:6px">
+        Reminder: Verify, then trust • Protect our data as you would your own • When in doubt, report it out.
+      </div>`;
+    els.nextBtn.disabled = true;
+  }
+}
+
+function resetAll(){
+  idx = 0; score = 0; answersLog.length = 0;
+  els.exportBox.value = "";
+  render();
+}
+
+function exportSummary(){
+  const now = new Date();
+  const lines = [];
+  lines.push(`Nexora Active Defense Microlearning — Results Summary`);
+  lines.push(`Timestamp: ${now.toISOString()}`);
+  lines.push(`Score: ${score}/${questions.length}`);
+  lines.push(`---`);
+  answersLog.forEach((a,i)=>{
+    lines.push(`${i+1}. ${a.q}`);
+    lines.push(`   Tag: ${a.tag}`);
+    lines.push(`   Selected: ${a.selected} | Correct: ${a.correct ? "Yes" : "No"}`);
+    lines.push(`   Risk signals: ${a.riskSignals.join(", ")}`);
+  });
+  lines.push(`---`);
+  lines.push(`Reporting workflow:`);
+  lines.push(`- Email threats: Email client “Report Suspicious Activity” button (SOC ticket)`);
+  lines.push(`- Teams/Slack/SMS/Deepfake audio: High-Priority IT service portal ticket → Security Incident`);
+  lines.push(`External sharing: NexoraShare (encrypted) / approved Teams integrations only.`);
+  els.exportBox.value = lines.join("\n");
+  els.exportBox.scrollTop = 0;
+}
+
+els.submitBtn.addEventListener("click", submit);
+els.nextBtn.addEventListener("click", next);
+els.resetBtn.addEventListener("click", resetAll);
+els.exportBtn.addEventListener("click", exportSummary);
+
+render();
+</script>
+</body>
+</html>
