@@ -41,8 +41,12 @@ def indicators(bars):
 
 
 def signals(ind, side, trigger, min_vol):
-    base = (ind["vol60"] >= min_vol) & (ind["close"] < ind["sma50"])
     kind, level = trigger
+    if side == "chase":  # comparison only: 2x long after a rally while above the 50-day average
+        base = (ind["vol60"] >= min_vol) & (ind["close"] > ind["sma50"])
+        trig = ind["ret5"] >= level if kind == "ret5" else ind["rsi2"] > level
+        return (base & trig).fillna(False)
+    base = (ind["vol60"] >= min_vol) & (ind["close"] < ind["sma50"])
     if side == "long":
         trig = ind["ret5"] <= -level if kind == "ret5" else ind["rsi2"] < level
     else:
@@ -59,7 +63,7 @@ def run_symbol(sym, ind, side, trigger, min_vol, exit_rule, max_days):
     sig = signals(ind, side, trigger, min_vol).values
     o, c, sma5, r5 = ind["open"].values, ind["close"].values, ind["sma5"].values, ind["ret5"].values
     dates = ind.index
-    direction = 1.0 if side == "long" else -1.0
+    direction = -1.0 if side == "short" else 1.0
     trades, i, n = [], 0, len(ind)
     while i < n - 1:
         if not sig[i]:
@@ -70,7 +74,7 @@ def run_symbol(sym, ind, side, trigger, min_vol, exit_rule, max_days):
         path = {dates[j]: max(growth, 0.0)}
         held = 1
         while True:
-            bounce = (c[j] > sma5[j]) if side == "long" else (c[j] < sma5[j])
+            bounce = (c[j] < sma5[j]) if side == "short" else (c[j] > sma5[j])
             if (exit_rule == "sma5" and bounce) or held >= max_days or j >= n - 1:
                 break
             j += 1
@@ -204,6 +208,15 @@ def main():
         print(f"  全部{len(g[g.side == side])}组参数中, 样本内利润因子>1: {(g[g.side == side].is_pf > 1).mean():.0%}, "
               f"样本外利润因子>1: {(g[g.side == side].oos_pf > 1).mean():.0%}")
         chosen[side] = sub.iloc[0]
+
+    print("\n=== 同样的2倍做多和出场, 只换入场条件 (全部年份) ===")
+    print(f"{'入场条件':<30}{'笔数':>6}{'每笔平均':>10}{'胜率':>7}{'利润因子':>9}")
+    for name, side, trig in [("追多: 50日线上方+5日涨≥10%", "chase", ("ret5", 0.10)),
+                             ("追多: 50日线上方+5日涨≥15%", "chase", ("ret5", 0.15)),
+                             ("抄底: 50日线下方+5日跌≥10%", "long", ("ret5", 0.10)),
+                             ("抄底: 50日线下方+5日跌≥15%", "long", ("ret5", 0.15))]:
+        s = trade_stats(all_trades(inds, side, trig, 0.8, "sma5", 10))
+        print(f"{name:<30}{s['n']:>6}{s['avg']:>+10.2%}{s['win']:>7.0%}{s['pf']:>9.2f}")
 
     # year-by-year for the in-sample winners: is the edge stable or one regime?
     for side, row in chosen.items():
