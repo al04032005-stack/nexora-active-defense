@@ -34,6 +34,21 @@ python3 backtest/dip_strategy.py --prices prices.csv.gz          # 网格 + 组�
 python3 backtest/dip_strategy.py --prices prices.csv.gz --scan   # 只看最新收盘的信号
 ```
 
+## daily_list.py — 回测邮件里的每日清单（Stock Dashboard Top 5）
+
+两种照做方式：
+
+- 收到邮件后的下一个开盘买入，看 1/5/10/20 个交易日后的收益，并和同一时间买卖 SPY 比较
+- 按邮件给的 Buy @ / Stop / Target 挂单：Buy @ 低于报价就是限价买、高于报价就是突破买，5 个交易日内有效；成交后先到止损或目标就出，最多持有 20 个交易日；同一根日线同时碰到两边按先止损算
+
+另外按信号强度、当天排名、置信度、入选时相对 50 日线的位置拆分结果。
+
+```bash
+python3 backtest/daily_list.py --picks daily_list.csv --prices prices.csv.gz
+```
+
+`daily_list.csv`：`thread_id,sent_utc,report_date,n_analyzed,n_buy,n_hold,n_sell,rank,ticker,decision,price,buy_at,stop,target,conf`，每封邮件每个入选一行；同一天有多封时只用最后一封。
+
 ## 价格数据
 
 `prices.csv.gz`：`symbol,date,open,high,low,close,volume`，日线、拆合股复权。本次数据通过 Robinhood 行情接口拉取，股票池为约 90 只美股（含 2021–2023 年大跌过的名字以减轻幸存者偏差）加上实际交易过的标的。股票池是按今天还在上市的股票选的，抄底类策略因此会被高估。
